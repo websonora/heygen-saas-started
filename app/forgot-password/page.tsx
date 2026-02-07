@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { login } from "./actions";
+import { resetPassword } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,27 +12,32 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default async function LoginPage({
+export default async function ForgotPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, message } = await searchParams;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-black">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Log in</CardTitle>
+          <CardTitle className="text-2xl">Reset password</CardTitle>
           <CardDescription>
-            Enter your email and password to sign in
+            Enter your email to receive a password reset link
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={login} className="flex flex-col gap-4">
+          <form action={resetPassword} className="flex flex-col gap-4">
             {error && (
               <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {error}
+              </div>
+            )}
+            {message && (
+              <div className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
+                {message}
               </div>
             )}
             <div className="flex flex-col gap-2">
@@ -45,34 +50,19 @@ export default async function LoginPage({
                 required
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-muted-foreground hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                required
-              />
-            </div>
             <Button type="submit" className="w-full">
-              Log in
+              Send reset link
             </Button>
           </form>
         </CardContent>
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-primary underline-offset-4 hover:underline">
-              Sign up
+            Remember your password?{" "}
+            <Link
+              href="/login"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Log in
             </Link>
           </p>
         </CardFooter>
