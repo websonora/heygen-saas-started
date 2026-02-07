@@ -9,7 +9,7 @@ export function Hero() {
         <div className="flex flex-col gap-6">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Create AI Videos{" "}
-            <span className="text-muted-foreground">at Scale</span>
+            <span className="text-muted-foreground">with Style</span>
           </h1>
           <p className="max-w-md text-lg text-muted-foreground">
             Transform your content with AI-powered video generation. Create

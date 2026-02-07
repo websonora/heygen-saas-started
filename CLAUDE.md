@@ -22,51 +22,52 @@ npm run lint     # Run ESLint
 
 ## Architecture
 
-### Directory Structure
-- `app/` - Next.js App Router pages and layouts
-- `components/ui/` - Reusable UI components (shadcn/ui style)
-- `lib/utils.ts` - Utility functions including `cn()` for class merging
-- `hooks/` - Custom React hooks (alias configured but directory created as needed)
-
 ### Path Aliases
-Use `@/` prefix for imports (configured in tsconfig.json):
-- `@/components` → components/
-- `@/lib` → lib/
-- `@/components/ui` → components/ui/
-- `@/hooks` → hooks/
+Use `@/` prefix for imports (configured in tsconfig.json): `@/components`, `@/lib`, `@/hooks`.
 
-### Adding shadcn/ui Components
-Use the CLI to add new components (configured via `components.json`):
+### Route Structure
+- **Public:** `/` (landing), `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/logout`
+- **Protected:** `/dashboard`, `/dashboard/settings`
+- **Auth handlers:** `/auth/callback` (code exchange for email verification/OAuth)
+
+### Route Protection (Two Layers)
+1. **Proxy** (`proxy.ts` → `lib/supabase/proxy.ts`): Runs `updateSession()` on every request. Calls `getClaims()` to refresh session, then redirects unauthenticated users to `/login` unless on a whitelisted public path. Next.js 16 uses `proxy()` (not `middleware()`).
+2. **Dashboard layout** (`app/dashboard/layout.tsx`): Server-side `getUser()` check with redirect — defense in depth.
+
+### Supabase Client Pattern
+- **Browser client** (`lib/supabase/client.ts`): `createBrowserClient()` — used in client components (reset-password form, settings form)
+- **Server client** (`lib/supabase/server.ts`): `createServerClient()` with async `cookies()` — used in server actions, server components, and layouts
+- **Proxy helper** (`lib/supabase/proxy.ts`): `createServerClient()` with request/response cookie bridging — must call `getClaims()` before any other logic
+
+Environment variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+
+### Auth Flows
+- **Login**: Server action → `signInWithPassword()` → redirect to `/dashboard`
+- **Signup**: Server action → `signUp()` with `emailRedirectTo: /auth/callback` → user verifies email → callback exchanges code for session
+- **Password reset**: Server action → `resetPasswordForEmail()` with redirect to `/auth/callback?next=/reset-password` → client component calls `updateUser({ password })`
+- **Logout**: Server action calls `signOut()` and redirects
+
+Errors are passed via URL query params (`?error=...`) and displayed on form pages.
+
+### Component Organization
+- `components/ui/` — shadcn/ui primitives (button, card, input, dialog, etc.)
+- `components/landing/` — Public page sections (header, hero, features, pricing, footer)
+- `components/dashboard/` — Authenticated UI (header, sidebar-nav, user-avatar, settings-form)
+
+### Server Actions Pattern
+Each route with form submissions has a co-located `actions.ts` file using `"use server"` with `FormData` input, `redirect()` for navigation, and URL-encoded error messages.
+
+### Dashboard Layout
+Server Component that fetches user profile from `profiles` table (`full_name`, `avatar_url`). Renders a two-column layout: sidebar (hidden on mobile, exposed via Sheet) + main content area. Props flow down to client components (Header, SidebarNav, UserAvatar).
+
+## Adding shadcn/ui Components
+
 ```bash
 npx shadcn@latest add <component-name>
 ```
-Components are installed to `components/ui/` using the new-york style, RSC-compatible, with Lucide icons.
 
-## Component Patterns
-
-### UI Components
-Components follow the shadcn/ui pattern:
-- Use `"use client"` directive for interactive components
-- Use CVA (Class Variance Authority) for style variants
-- Support `className` prop and merge with `cn()` utility
-- Use `data-slot` attributes for styling hooks
-- Support `asChild` prop via Radix UI Slot for polymorphism
-
-### Example Button Usage
-```tsx
-import { Button } from "@/components/ui/button"
-// Variants: default, destructive, outline, secondary, ghost, link
-// Sizes: default, xs, sm, lg, icon, icon-xs, icon-sm, icon-lg
-<Button variant="outline" size="sm">Click</Button>
-```
-
-### Adding New UI Components
-Follow existing patterns in `components/ui/`. Components use composition (e.g., Dialog has DialogTrigger, DialogContent, DialogHeader subcomponents).
+Components are installed to `components/ui/` using the new-york style. They use CVA for variants, `cn()` for class merging, `data-slot` attributes, and `asChild` via Radix Slot.
 
 ## Styling
 
-Theme colors are defined as CSS variables in `app/globals.css`. Dark mode is supported via `.dark` class. Use semantic color variables (e.g., `bg-primary`, `text-muted-foreground`) rather than raw colors.
-
-## Supabase
-
-The project uses `@supabase/ssr` for server-side Supabase client creation. When adding Supabase integration, create client utilities in `lib/` (e.g., `lib/supabase/client.ts` for browser, `lib/supabase/server.ts` for server components/actions). Environment variables needed: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+Theme colors are CSS variables in `app/globals.css`. Dark mode via `.dark` class. Use semantic variables (`bg-primary`, `text-muted-foreground`) not raw colors.
